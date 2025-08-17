@@ -6,7 +6,7 @@ export interface AppraisalResponse {
   nftMetadata: {
     name: string;
     imageUrl: string;
-    traits: Array<{ traitType: string; value: string; rarity: number }>; // e.g., [{ traitType: "Background", value: "Blue", rarity: 0.15 }]
+    traits: Array<{ traitType: string; value: string }>; // e.g., [{ traitType: "Background", value: "Blue", rarity: 0.15 }]
   };
   salesHistory: Array<{ date: string; priceEth: number; usdValue: number }>; // Last 10 sales
   rarityScore: number; // 0-100, based on traits

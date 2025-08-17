@@ -3,7 +3,6 @@ import React from "react";
 export interface Trait {
   traitType: string;
   value: string;
-  rarity: number; // fraction (0..1) or percent (0..100)
 }
 
 export interface NftTraitsProps {
@@ -13,12 +12,6 @@ export interface NftTraitsProps {
   maxVisible?: number;
   className?: string;
 }
-
-/** Convert fraction/percent to a displayable percentage */
-const toPercent = (n: number) => {
-  if (!Number.isFinite(n)) return 0;
-  return n <= 1 ? n * 100 : n;
-};
 
 export default function NftTraits({
   traits,
@@ -53,9 +46,6 @@ export default function NftTraits({
             >
               {trait.value}
             </p>
-            <span className="mt-1 text-sm text-[#A3FFC8] font-semibold ">
-              {toPercent(trait.rarity).toFixed(2)}% Rare
-            </span>
           </div>
         ))}
       </div>

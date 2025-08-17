@@ -6,16 +6,13 @@ export const mockAppraisalResponse: AppraisalResponse = {
     imageUrl:
       "https://storage.googleapis.com/opensea-prod.appspot.com/puffs/3.png",
     traits: [
-      { traitType: "Base", value: "Starfish", rarity: 0.12 }, // Rarity as fraction (12% of collection has this)
-      { traitType: "Eyes", value: "Big", rarity: 0.25 },
-      { traitType: "Mouth", value: "Surprised", rarity: 0.18 },
-      { traitType: "Level", value: "5", rarity: 0.1 }, // Numeric trait
-      { traitType: "Stamina", value: "1.4", rarity: 0.15 },
-      { traitType: "Personality", value: "Sad", rarity: 0.2 },
-      { traitType: "Aqua Power", value: "40", rarity: 0.08 }, // With display_type: boost_number in OpenSea standards
-      { traitType: "Stamina Increase", value: "10", rarity: 0.11 }, // display_type: boost_percentage
-      { traitType: "Generation", value: "2", rarity: 0.05 }, // display_type: number
-      { traitType: "Birthday", value: "1546360800", rarity: 0.01 }, // display_type: date (Unix timestamp)
+      { traitType: "Collection name", value: "Baluga boy" },
+      {
+        traitType: "Collection address",
+        value: "0xe9324223h3dx9932vacac00002d2c",
+      },
+      { traitType: "Token ID", value: "7261" },
+      { traitType: "Owner", value: "0x553j2ddwd9d9d992b23hfbk2j32e2r323" },
     ],
   },
   salesHistory: [
