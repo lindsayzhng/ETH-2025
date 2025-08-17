@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
     "@supabase/supabase-js": "^2.55.0",
     "@tailwindcss/vite": "^4.1.12",
     "@tanstack/react-query": "^5.85.3",
@@ -22,6 +23,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.8.1",
+    "solc": "^0.8.30",
     "tailwindcss": "^4.1.12",
     "viem": "^2.33.3",
     "wagmi": "^2.16.3"
