@@ -4,7 +4,7 @@ import "./App.css";
 import { Sidebar } from "./components/sidebar";
 import type { SidebarItem } from "./components/sidebar";
 import Leaderboard from "./pages/Leaderboard";
-import { User, Wallet, Scale, Trophy } from "lucide-react";
+import { User, Wallet, Scale, Trophy, Upload } from "lucide-react";
 
 import {
   BrowserRouter as Router,
@@ -18,6 +18,7 @@ import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "./config"; // Your Wagmi config
 import WalletConnection from "./pages/WalletConnection";
+import DeployContract from "./pages/DeployContract";
 import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
 import Portfolio from "./pages/Portfolio";
 
@@ -64,6 +65,11 @@ function ProtectedLayout() {
       href: "/leaderboard",
       icon: <Trophy className="h-5 w-5" />,
     },
+    {
+      label: "Deploy Contract",
+      href: "/deploy",
+      icon: <Upload className="h-5 w-5" />,
+    },
     // { label: "Chatbot", href: "/chatbot" },
   ];
 
@@ -90,6 +96,7 @@ function App() {
               <Route path="/appraise" element={<AppraisalForm />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/deploy" element={<DeployContract />} />
               {/* <Route path="/chatbot" element={<div>Chatbot Page</div>} /> */}
             </Route>
           </Routes>

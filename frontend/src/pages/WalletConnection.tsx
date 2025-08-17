@@ -20,10 +20,10 @@ const WalletConnection: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-gray-800 rounded-xl shadow-2xl p-8 space-y-6">
         <h1 className="text-2xl font-bold text-[#A3FFC8] text-center">
-          Connect Your Wallet
+          Connect to MintCondition
         </h1>
         <p className="text-gray-300 text-center">
-          Connect to access NFT appraisal, portfolio, and more.
+          Connect your wallet to access NFT appraisals, and more.
         </p>
 
         {isConnected ? (
@@ -51,7 +51,7 @@ const WalletConnection: React.FC = () => {
             {connectors.map((connector) => (
               <Button
                 key={connector.id}
-                variant="primary"
+                variant="outlined"
                 onClick={() => connect({ connector })}
                 className="w-full"
               >

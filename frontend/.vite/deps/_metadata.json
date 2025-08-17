@@ -2,7 +2,135 @@
   "hash": "226251dd",
   "configHash": "d900a55c",
   "lockfileHash": "528b2a91",
-  "browserHash": "2e83171e",
-  "optimized": {},
-  "chunks": {}
+  "browserHash": "bf68efb1",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "1f0ab387",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "55ff64e7",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "41638b0b",
+      "needsInterop": true
+    },
+    "miragejs": {
+      "src": "../../node_modules/miragejs/dist/mirage-esm.js",
+      "file": "miragejs.js",
+      "fileHash": "e50c9481",
+      "needsInterop": false
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "1aa4079c",
+      "needsInterop": false
+    },
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
+      "file": "lucide-react.js",
+      "fileHash": "7353a810",
+      "needsInterop": false
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "ce9d5a73",
+      "needsInterop": false
+    },
+    "wagmi": {
+      "src": "../../node_modules/wagmi/dist/esm/exports/index.js",
+      "file": "wagmi.js",
+      "fileHash": "670e0d64",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "d08825e0",
+      "needsInterop": false
+    },
+    "wagmi/chains": {
+      "src": "../../node_modules/wagmi/dist/esm/exports/chains.js",
+      "file": "wagmi_chains.js",
+      "fileHash": "3c5fa4c5",
+      "needsInterop": false
+    },
+    "ethers": {
+      "src": "../../node_modules/ethers/lib.esm/index.js",
+      "file": "ethers.js",
+      "fileHash": "b836fdef",
+      "needsInterop": false
+    },
+    "ldrs/react": {
+      "src": "../../node_modules/ldrs/dist/react/index.js",
+      "file": "ldrs_react.js",
+      "fileHash": "cdc73b4c",
+      "needsInterop": false
+    },
+    "@supabase/supabase-js": {
+      "src": "../../node_modules/@supabase/supabase-js/dist/module/index.js",
+      "file": "@supabase_supabase-js.js",
+      "fileHash": "2839c9d2",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "browser-VLKRZ7RP": {
+      "file": "browser-VLKRZ7RP.js"
+    },
+    "chunk-C5A7FNJB": {
+      "file": "chunk-C5A7FNJB.js"
+    },
+    "secp256k1-DCBTJ5AF": {
+      "file": "secp256k1-DCBTJ5AF.js"
+    },
+    "ccip-HPK4Y64E": {
+      "file": "ccip-HPK4Y64E.js"
+    },
+    "native-DZ5LO24Q": {
+      "file": "native-DZ5LO24Q.js"
+    },
+    "chunk-E5ODL3YF": {
+      "file": "chunk-E5ODL3YF.js"
+    },
+    "chunk-3PSK63DX": {
+      "file": "chunk-3PSK63DX.js"
+    },
+    "chunk-VFTTC5PT": {
+      "file": "chunk-VFTTC5PT.js"
+    },
+    "chunk-32NEGIXE": {
+      "file": "chunk-32NEGIXE.js"
+    },
+    "chunk-YBJSYXHM": {
+      "file": "chunk-YBJSYXHM.js"
+    },
+    "chunk-GLTI7J6V": {
+      "file": "chunk-GLTI7J6V.js"
+    },
+    "chunk-BR2DDTUP": {
+      "file": "chunk-BR2DDTUP.js"
+    },
+    "chunk-55X54YMU": {
+      "file": "chunk-55X54YMU.js"
+    },
+    "chunk-XRGHWNRL": {
+      "file": "chunk-XRGHWNRL.js"
+    },
+    "chunk-65KY755N": {
+      "file": "chunk-65KY755N.js"
+    },
+    "chunk-V4OQ3NZ2": {
+      "file": "chunk-V4OQ3NZ2.js"
+    }
+  }
 }
