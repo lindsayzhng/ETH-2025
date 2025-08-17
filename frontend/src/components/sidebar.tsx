@@ -4,10 +4,11 @@ import { NavLink } from "react-router-dom"; // Import NavLink for dynamic active
 import Button from "./button"; // Assuming you have a Button component
 import Logo from "../assets/logo.png"; // Adjust path to your logo
 export type SidebarItem = {
-  label: string;
+  label: string | React.ReactNode;
   href?: string;
   onClick?: () => void;
   icon?: React.ReactNode;
+  transparent?: boolean;
   // Removed active prop; we'll handle it dynamically with NavLink
 };
 
@@ -92,10 +93,12 @@ export function Sidebar({
         <button
           onClick={item.onClick}
           className={[
-            "group flex items-center rounded-lg px-3 py-2 transition-colors outline-none",
+            "group flex items-center transition-colors outline-none",
+            item.transparent 
+              ? "px-3 py-1 text-gray-400 hover:text-red-400 bg-transparent" 
+              : "rounded-lg px-3 py-2 text-gray-200 hover:bg-black/40 focus:bg-black/50",
             `gap-${collapsed ? "0" : "3"}`,
             collapsed ? "justify-center" : "",
-            "text-gray-200 hover:bg-black/40 focus:bg-black/50",
             "focus-visible:ring-2 focus-visible:ring-white/40",
           ].join(" ")}
           title={collapsed ? item.label : undefined}

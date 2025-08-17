@@ -1,10 +1,10 @@
 import { useState } from "react";
-import AppraisalForm from "./pages/AppraisalForm";
+import NewAppraisalForm from "./pages/NewAppraisalForm";
 import "./App.css";
 import { Sidebar } from "./components/sidebar";
 import type { SidebarItem } from "./components/sidebar";
 import Leaderboard from "./pages/Leaderboard";
-import { User, Wallet, Scale, Trophy } from "lucide-react";
+import { Wallet, Scale, Trophy, LogOut } from "lucide-react";
 
 import {
   BrowserRouter as Router,
@@ -23,32 +23,39 @@ import Portfolio from "./pages/Portfolio";
 
 const queryClient = new QueryClient();
 
-function AccountPage() {
+function WalletInfo() {
   const { address } = useAccount();
   const { data: balance } = useBalance({ address });
+  const { disconnect } = useDisconnect();
 
-  return (
-    <div className="p-6 bg-gray-800 rounded-lg shadow-md space-y-4">
-      <h2 className="text-xl font-bold text-[#A3FFC8]">Account Connected</h2>
-      <p className="text-gray-300">
-        Wallet Address:{" "}
-        <span className="font-mono text-[#A3FFC8]">{address}</span>
-      </p>
-      <p className="text-gray-300">
-        Balance:{" "}
-        <span className="text-[#A3FFC8]">{balance?.formatted} ETH</span>
-      </p>
-      <p className="text-gray-300">
-        You're now connected! Explore the app via the sidebar.
-      </p>
-    </div>
-  );
+  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
+  const shortBalance = balance?.formatted ? `${balance.formatted.slice(0, 6)} ETH` : '0 ETH';
+
+  return [
+    {
+      label: (
+        <div className="flex items-center justify-between w-full min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-xs font-mono text-[#A3FFC8] truncate">{shortAddress}</span>
+            <span className="text-xs text-gray-300">{shortBalance}</span>
+          </div>
+        </div>
+      ),
+      icon: <Wallet className="h-5 w-5 text-[#A3FFC8]" />,
+      onClick: () => {}
+    },
+    {
+      label: "Disconnect",
+      icon: <LogOut className="h-5 w-5 text-red-400" />,
+      onClick: () => disconnect(),
+      transparent: true
+    }
+  ];
 }
 
 function ProtectedLayout() {
   const { isConnected } = useAccount();
   const items: SidebarItem[] = [
-    { label: "Account", href: "/account", icon: <User className="h-5 w-5" /> },
     {
       label: "Your Portfolio",
       href: "/portfolio",
@@ -67,12 +74,14 @@ function ProtectedLayout() {
     // { label: "Chatbot", href: "/chatbot" },
   ];
 
+  const walletInfo = WalletInfo();
+
   if (!isConnected) {
     return <Navigate to="/" replace />;
   }
 
   return (
-    <Sidebar items={items} logo="MintCondition" defaultCollapsed={false}>
+    <Sidebar items={items} footerItems={walletInfo} logo="MintCondition" defaultCollapsed={false}>
       <Outlet />
     </Sidebar>
   );
@@ -86,10 +95,10 @@ function App() {
           <Routes>
             <Route path="/" element={<WalletConnection />} />
             <Route element={<ProtectedLayout />}>
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/appraise" element={<AppraisalForm />} />
+              <Route path="/appraise" element={<NewAppraisalForm />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/portfolio" element={<Portfolio />} />
+              <Route index element={<Navigate to="/portfolio" replace />} />
               {/* <Route path="/chatbot" element={<div>Chatbot Page</div>} /> */}
             </Route>
           </Routes>

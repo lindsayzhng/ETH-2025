@@ -12,7 +12,7 @@ import Button from "../components/button";
 import NftInfo from "../components/nftInfo";
 
 const AppraisalForm: React.FC = () => {
-  const [contractAddr, setContractAddr] = useState("");
+  const [query, setQuery] = useState("");
   const [result, setResult] = useState<Partial<AppraisalResponse> | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -20,7 +20,7 @@ const AppraisalForm: React.FC = () => {
 
   const handleSell = () => {
     if (result) {
-      const openSeaUrl = `https://opensea.io/assets/ethereum/${contractAddr}`;
+      const openSeaUrl = `https://opensea.io/search?q=${encodeURIComponent(query)}`;
       window.open(openSeaUrl, "_blank", "noopener,noreferrer");
     }
   };
@@ -32,7 +32,7 @@ const AppraisalForm: React.FC = () => {
     setError(null);
     setResult(null);
     try {
-      const req: AppraisalRequest = { contractAddr };
+      const req: AppraisalRequest = { contractAddr: query };
       const fullData = await fetchAppraisal(req);
 
       // Simulate separate fetches: Set metadata immediately, delay models for realism
@@ -62,9 +62,10 @@ const AppraisalForm: React.FC = () => {
       >
         <div className="min-w-0">
           <TextInput
-            label="Contract Address"
-            value={contractAddr}
-            onChange={(e) => setContractAddr(e.target.value)}
+            label="NFT Query"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g., 'Pudgy Penguins #3532', contract address, or collection name"
           />
         </div>
 

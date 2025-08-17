@@ -1,0 +1,12 @@
+# API Gateway Requirements
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+pydantic==2.5.0
+python-multipart==0.0.6
+typing-extensions==4.8.0
+
+# Existing dependencies from consensus agent
+python-dotenv==1.0.0
+openai==1.6.1
+asyncio-mqtt==0.13.0

@@ -38,6 +38,22 @@ from shared_pricing_protocol import (
     NFTPricingResponse
 )
 
+# New API Models Import
+from consensus_api_models import (
+    NFTAppraisalRequest,
+    NFTAppraisalResponse,
+    NFTIdentity,
+    AgentPricingAnalysis,
+    TraitAnalysis,
+    MarketData,
+    ConsensusAnalysis,
+    ConsensusMetrics,
+    ProcessingMetadata,
+    AgentType,
+    StreamingLog,
+    LogLevel
+)
+
 # --- Agent Configuration ---
 
 load_dotenv()
@@ -294,6 +310,186 @@ LENGTH: Comprehensive but concise (4-6 key points).
 """
         
         return self.create_completion(prompt, max_tokens=1000, use_agentic=True)
+    
+    def generate_structured_consensus(self, responses: List[NFTPricingResponse]) -> ConsensusAnalysis:
+        """Generate structured consensus analysis using ASI:One's structured output"""
+        import uuid
+        try:
+            from openai import pydantic_function_tool
+        except ImportError:
+            # Fallback if pydantic_function_tool is not available
+            print("Warning: pydantic_function_tool not available, using fallback consensus generation")
+            return self._generate_fallback_consensus(responses)
+        
+        try:
+            prices = [r.price_eth for r in responses if r.price_eth]
+            if not prices:
+                # Return empty consensus for no valid prices
+                return ConsensusAnalysis(
+                    consensus_price_eth=0.0,
+                    confidence_score=0.0,
+                    strong_consensus=False,
+                    metrics=ConsensusMetrics(
+                        variance=0.0,
+                        standard_deviation=0.0,
+                        coefficient_of_variation=0.0,
+                        price_range_min=0.0,
+                        price_range_max=0.0,
+                        median_price=0.0
+                    ),
+                    consensus_reasoning="No valid price responses received from agents",
+                    market_positioning="Unable to determine market position",
+                    risk_assessment="High risk due to lack of agent responses"
+                )
+            
+            # Calculate statistical metrics
+            avg_price = statistics.mean(prices)
+            variance = statistics.variance(prices) if len(prices) > 1 else 0
+            std_dev = statistics.stdev(prices) if len(prices) > 1 else 0
+            coefficient_of_variation = (std_dev / avg_price) * 100 if avg_price > 0 else 0
+            median_price = statistics.median(prices)
+            
+            session_id = str(uuid.uuid4())
+            
+            prompt = f"""
+Analyze this multi-agent NFT pricing consensus and generate structured analysis.
+
+AGENT RESPONSES:
+{chr(10).join([f"- {r.agent_name}: {r.price_eth} ETH (confidence: {r.confidence:.1%}) - {r.reasoning[:200]}..." for r in responses])}
+
+STATISTICAL DATA:
+- Prices: {prices} ETH
+- Mean: {avg_price:.3f} ETH
+- Variance: {variance:.6f}
+- Standard Deviation: {std_dev:.3f} ETH
+- Coefficient of Variation: {coefficient_of_variation:.2f}%
+- Median: {median_price:.3f} ETH
+
+Generate comprehensive structured consensus analysis including:
+1. Final consensus price (use mean of prices)
+2. Confidence score based on agreement level
+3. Whether strong consensus achieved (CV < 10%)
+4. Detailed reasoning for the consensus
+5. Market positioning analysis
+6. Risk assessment
+
+Be thorough and professional in your analysis.
+"""
+            
+            completion = self.client.beta.chat.completions.parse(
+                model="asi1-agentic",
+                messages=[
+                    {"role": "system", "content": "You are an expert NFT pricing analyst generating structured consensus analysis."},
+                    {"role": "user", "content": prompt}
+                ],
+                tools=[pydantic_function_tool(ConsensusAnalysis, name="consensus_analysis")],
+                extra_headers={"x-session-id": session_id}
+            )
+            
+            if completion.choices[0].message.tool_calls:
+                result = completion.choices[0].message.tool_calls[0].function.parsed_arguments
+                
+                # Ensure the metrics are populated correctly
+                result.metrics = ConsensusMetrics(
+                    variance=variance,
+                    standard_deviation=std_dev,
+                    coefficient_of_variation=coefficient_of_variation,
+                    price_range_min=min(prices),
+                    price_range_max=max(prices),
+                    median_price=median_price
+                )
+                
+                return result
+            else:
+                # Fallback if structured parsing fails
+                reasoning = self.analyze_consensus(responses)
+                return ConsensusAnalysis(
+                    consensus_price_eth=avg_price,
+                    confidence_score=max(0.0, min(1.0, 1.0 - (coefficient_of_variation / 100))),
+                    strong_consensus=coefficient_of_variation < 10.0,
+                    metrics=ConsensusMetrics(
+                        variance=variance,
+                        standard_deviation=std_dev,
+                        coefficient_of_variation=coefficient_of_variation,
+                        price_range_min=min(prices),
+                        price_range_max=max(prices),
+                        median_price=median_price
+                    ),
+                    consensus_reasoning=reasoning,
+                    market_positioning="Analysis based on multi-agent consensus",
+                    risk_assessment="Standard market risk factors apply"
+                )
+                
+        except Exception as e:
+            print(f"Error in structured consensus generation: {e}")
+            # Return fallback consensus
+            prices = [r.price_eth for r in responses if r.price_eth]
+            avg_price = statistics.mean(prices) if prices else 0.0
+            
+            return ConsensusAnalysis(
+                consensus_price_eth=avg_price,
+                confidence_score=0.5,
+                strong_consensus=False,
+                metrics=ConsensusMetrics(
+                    variance=0.0,
+                    standard_deviation=0.0,
+                    coefficient_of_variation=0.0,
+                    price_range_min=avg_price,
+                    price_range_max=avg_price,
+                    median_price=avg_price
+                ),
+                consensus_reasoning=f"Fallback analysis due to processing error: {str(e)}",
+                market_positioning="Unable to generate detailed positioning",
+                risk_assessment="Higher risk due to analysis limitations"
+            )
+    
+    def _generate_fallback_consensus(self, responses: List[NFTPricingResponse]) -> ConsensusAnalysis:
+        """Fallback consensus generation without structured output"""
+        prices = [r.price_eth for r in responses if r.price_eth]
+        if not prices:
+            return ConsensusAnalysis(
+                consensus_price_eth=0.0,
+                confidence_score=0.0,
+                strong_consensus=False,
+                metrics=ConsensusMetrics(
+                    variance=0.0,
+                    standard_deviation=0.0,
+                    coefficient_of_variation=0.0,
+                    price_range_min=0.0,
+                    price_range_max=0.0,
+                    median_price=0.0
+                ),
+                consensus_reasoning="No valid price responses received from agents",
+                market_positioning="Unable to determine market position",
+                risk_assessment="High risk due to lack of agent responses"
+            )
+        
+        # Calculate statistical metrics
+        avg_price = statistics.mean(prices)
+        variance = statistics.variance(prices) if len(prices) > 1 else 0
+        std_dev = statistics.stdev(prices) if len(prices) > 1 else 0
+        coefficient_of_variation = (std_dev / avg_price) * 100 if avg_price > 0 else 0
+        median_price = statistics.median(prices)
+        
+        # Generate reasoning using existing method
+        reasoning = self.analyze_consensus(responses)
+        
+        return ConsensusAnalysis(
+            consensus_price_eth=avg_price,
+            confidence_score=max(0.0, min(1.0, 1.0 - (coefficient_of_variation / 100))),
+            strong_consensus=coefficient_of_variation < 10.0,
+            metrics=ConsensusMetrics(
+                variance=variance,
+                standard_deviation=std_dev,
+                coefficient_of_variation=coefficient_of_variation,
+                price_range_min=min(prices),
+                price_range_max=max(prices),
+                median_price=median_price
+            ),
+            consensus_reasoning=reasoning,
+            market_positioning="Analysis based on multi-agent consensus using fallback method",
+            risk_assessment="Standard market risk factors apply"
+        )
 
 # --- MeTTa Knowledge System ---
 
@@ -420,7 +616,7 @@ class ConsensusCoordinator:
         self.active_requests: Dict[str, Dict] = {}
     
     async def process_pricing_request(self, query: str) -> str:
-        """Main entry point for processing pricing requests"""
+        """Main entry point for processing pricing requests (legacy text output)"""
         try:
             # Parse the query
             nft_info = self.asi_llm.parse_nft_query(query)
@@ -463,6 +659,224 @@ class ConsensusCoordinator:
         except Exception as e:
             self.ctx.logger.error(f"Error in consensus processing: {e}")
             return f"❌ An error occurred during consensus analysis: {str(e)}"
+    
+    async def process_pricing_request_structured(self, request: NFTAppraisalRequest) -> NFTAppraisalResponse:
+        """Main entry point for structured API requests"""
+        start_time = time.time()
+        request_id = str(uuid4())
+        
+        try:
+            # Parse the request
+            if request.query:
+                # Natural language query
+                nft_info = self.asi_llm.parse_nft_query(request.query)
+                if not nft_info:
+                    return NFTAppraisalResponse(
+                        request_id=request_id,
+                        timestamp=datetime.now(timezone.utc).isoformat(),
+                        nft_identity=NFTIdentity(
+                            collection_name="",
+                            token_id="",
+                            network="ethereum"
+                        ),
+                        agent_analyses=[],
+                        consensus=ConsensusAnalysis(
+                            consensus_price_eth=0.0,
+                            confidence_score=0.0,
+                            strong_consensus=False,
+                            metrics=ConsensusMetrics(
+                                variance=0.0,
+                                standard_deviation=0.0,
+                                coefficient_of_variation=0.0,
+                                price_range_min=0.0,
+                                price_range_max=0.0,
+                                median_price=0.0
+                            ),
+                            consensus_reasoning="Could not parse NFT query",
+                            market_positioning="Unable to determine",
+                            risk_assessment="High risk due to parsing failure"
+                        ),
+                        processing=ProcessingMetadata(
+                            total_processing_time_ms=int((time.time() - start_time) * 1000),
+                            agents_queried=0,
+                            agents_responded=0,
+                            agents_timed_out=[],
+                            asi_one_model_used="asi1-agentic",
+                            consensus_method="MeTTa symbolic reasoning"
+                        ),
+                        success=False,
+                        error_message="Could not parse NFT query"
+                    )
+                
+                nft_identity = NFTIdentity(
+                    collection_name=nft_info["collection_name"],
+                    token_id=nft_info["token_id"],
+                    network=nft_info.get("network", "ethereum")
+                )
+                
+            elif request.collection_name and request.token_id:
+                # Structured input
+                nft_identity = NFTIdentity(
+                    collection_name=request.collection_name,
+                    token_id=request.token_id,
+                    network=request.network
+                )
+                
+            else:
+                # Invalid request
+                return NFTAppraisalResponse(
+                    request_id=request_id,
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    nft_identity=NFTIdentity(
+                        collection_name="",
+                        token_id="",
+                        network="ethereum"
+                    ),
+                    agent_analyses=[],
+                    consensus=ConsensusAnalysis(
+                        consensus_price_eth=0.0,
+                        confidence_score=0.0,
+                        strong_consensus=False,
+                        metrics=ConsensusMetrics(
+                            variance=0.0,
+                            standard_deviation=0.0,
+                            coefficient_of_variation=0.0,
+                            price_range_min=0.0,
+                            price_range_max=0.0,
+                            median_price=0.0
+                        ),
+                        consensus_reasoning="Invalid request format",
+                        market_positioning="Unable to determine",
+                        risk_assessment="High risk due to invalid input"
+                    ),
+                    processing=ProcessingMetadata(
+                        total_processing_time_ms=int((time.time() - start_time) * 1000),
+                        agents_queried=0,
+                        agents_responded=0,
+                        agents_timed_out=[],
+                        asi_one_model_used="asi1-agentic",
+                        consensus_method="MeTTa symbolic reasoning"
+                    ),
+                    success=False,
+                    error_message="Must provide either query or collection_name + token_id"
+                )
+            
+            self.ctx.logger.info(f"Processing structured request for {nft_identity.collection_name} #{nft_identity.token_id}")
+            
+            # Create pricing request for agents
+            pricing_request = NFTPricingRequest(
+                collection_name=nft_identity.collection_name,
+                token_id=nft_identity.token_id,
+                network=nft_identity.network,
+                request_id=request_id,
+                requester_address=str(self.ctx.agent.address),
+                timestamp=datetime.now(timezone.utc).isoformat()
+            )
+            
+            # Broadcast to all agents and collect structured analyses
+            agent_analyses = await self._collect_agent_analyses_structured(pricing_request)
+            
+            if not agent_analyses:
+                processing_time = int((time.time() - start_time) * 1000)
+                return NFTAppraisalResponse(
+                    request_id=request_id,
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    nft_identity=nft_identity,
+                    agent_analyses=[],
+                    consensus=ConsensusAnalysis(
+                        consensus_price_eth=0.0,
+                        confidence_score=0.0,
+                        strong_consensus=False,
+                        metrics=ConsensusMetrics(
+                            variance=0.0,
+                            standard_deviation=0.0,
+                            coefficient_of_variation=0.0,
+                            price_range_min=0.0,
+                            price_range_max=0.0,
+                            median_price=0.0
+                        ),
+                        consensus_reasoning="No agent responses received",
+                        market_positioning="Unable to determine without agent data",
+                        risk_assessment="High risk due to lack of agent responses"
+                    ),
+                    processing=ProcessingMetadata(
+                        total_processing_time_ms=processing_time,
+                        agents_queried=len(PRICING_AGENTS),
+                        agents_responded=0,
+                        agents_timed_out=[AgentType.OPENAI, AgentType.ANTHROPIC, AgentType.GEMINI],
+                        asi_one_model_used="asi1-agentic",
+                        consensus_method="MeTTa symbolic reasoning"
+                    ),
+                    success=False,
+                    error_message="No agent responses received"
+                )
+            
+            # Generate structured consensus analysis
+            raw_responses = [self._convert_to_pricing_response(analysis) for analysis in agent_analyses]
+            consensus = self.asi_llm.generate_structured_consensus(raw_responses)
+            
+            # Calculate processing metadata
+            processing_time = int((time.time() - start_time) * 1000)
+            agents_responded = len([a for a in agent_analyses if a.success])
+            agents_timed_out = [a.agent_type for a in agent_analyses if not a.success]
+            
+            return NFTAppraisalResponse(
+                request_id=request_id,
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                nft_identity=nft_identity,
+                agent_analyses=agent_analyses,
+                consensus=consensus,
+                processing=ProcessingMetadata(
+                    total_processing_time_ms=processing_time,
+                    agents_queried=len(PRICING_AGENTS),
+                    agents_responded=agents_responded,
+                    agents_timed_out=agents_timed_out,
+                    asi_one_model_used="asi1-agentic",
+                    consensus_method="MeTTa symbolic reasoning + ASI:One structured output"
+                ),
+                success=True
+            )
+            
+        except Exception as e:
+            self.ctx.logger.error(f"Error in structured consensus processing: {e}")
+            processing_time = int((time.time() - start_time) * 1000)
+            
+            return NFTAppraisalResponse(
+                request_id=request_id,
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                nft_identity=NFTIdentity(
+                    collection_name="",
+                    token_id="",
+                    network="ethereum"
+                ),
+                agent_analyses=[],
+                consensus=ConsensusAnalysis(
+                    consensus_price_eth=0.0,
+                    confidence_score=0.0,
+                    strong_consensus=False,
+                    metrics=ConsensusMetrics(
+                        variance=0.0,
+                        standard_deviation=0.0,
+                        coefficient_of_variation=0.0,
+                        price_range_min=0.0,
+                        price_range_max=0.0,
+                        median_price=0.0
+                    ),
+                    consensus_reasoning=f"Processing error: {str(e)}",
+                    market_positioning="Unable to determine due to error",
+                    risk_assessment="High risk due to processing failure"
+                ),
+                processing=ProcessingMetadata(
+                    total_processing_time_ms=processing_time,
+                    agents_queried=0,
+                    agents_responded=0,
+                    agents_timed_out=[],
+                    asi_one_model_used="asi1-agentic",
+                    consensus_method="MeTTa symbolic reasoning"
+                ),
+                success=False,
+                error_message=str(e)
+            )
     
     async def _broadcast_pricing_request(self, request: NFTPricingRequest) -> List[NFTPricingResponse]:
         """Broadcast pricing request to all agents and collect responses"""
@@ -717,6 +1131,90 @@ Please reconsider your analysis for {request.collection_name} #{request.token_id
 """
         
         return report
+    
+    async def _collect_agent_analyses_structured(self, request: NFTPricingRequest) -> List[AgentPricingAnalysis]:
+        """Collect agent responses and convert to structured analyses"""
+        raw_responses = await self._broadcast_pricing_request(request)
+        structured_analyses = []
+        
+        for response in raw_responses:
+            # Convert NFTPricingResponse to AgentPricingAnalysis
+            analysis = self._convert_to_agent_analysis(response)
+            structured_analyses.append(analysis)
+        
+        return structured_analyses
+    
+    def _convert_to_agent_analysis(self, response: NFTPricingResponse) -> AgentPricingAnalysis:
+        """Convert NFTPricingResponse to structured AgentPricingAnalysis"""
+        # Map agent name to AgentType
+        agent_type_map = {
+            "OpenAI NFT Pricing Agent": AgentType.OPENAI,
+            "Anthropic NFT Pricing Agent": AgentType.ANTHROPIC,
+            "Gemini NFT Pricing Agent": AgentType.GEMINI
+        }
+        
+        agent_type = agent_type_map.get(response.agent_name, AgentType.OPENAI)
+        
+        # Extract traits from response
+        traits_analyzed = []
+        for trait_data in response.traits_analyzed:
+            if isinstance(trait_data, dict):
+                trait = TraitAnalysis(
+                    trait_type=trait_data.get("trait_type", ""),
+                    value=trait_data.get("value", ""),
+                    rarity_percentage=trait_data.get("rarity_percentage"),
+                    floor_price_impact=trait_data.get("floor_price_impact"),
+                    market_significance=trait_data.get("market_significance")
+                )
+                traits_analyzed.append(trait)
+        
+        # Extract market data
+        market_data = MarketData(
+            collection_floor=response.collection_floor,
+            collection_volume_24h=response.market_data.get("volume_24h"),
+            similar_sales=response.market_data.get("similar_sales"),
+            trait_floors=response.market_data.get("trait_floors"),
+            market_trends=response.market_data.get("trends")
+        )
+        
+        return AgentPricingAnalysis(
+            agent_type=agent_type,
+            agent_name=response.agent_name,
+            price_eth=response.price_eth or 0.0,
+            price_usd=response.price_usd,
+            confidence=response.confidence,
+            reasoning=response.reasoning,
+            traits_analyzed=traits_analyzed,
+            market_data=market_data,
+            processing_time_ms=1000,  # Default, could be calculated
+            success=response.success,
+            error_message=response.error_message
+        )
+    
+    def _convert_to_pricing_response(self, analysis: AgentPricingAnalysis) -> NFTPricingResponse:
+        """Convert AgentPricingAnalysis back to NFTPricingResponse for consensus"""
+        # Map AgentType back to agent name
+        agent_name_map = {
+            AgentType.OPENAI: "OpenAI NFT Pricing Agent",
+            AgentType.ANTHROPIC: "Anthropic NFT Pricing Agent", 
+            AgentType.GEMINI: "Gemini NFT Pricing Agent"
+        }
+        
+        return NFTPricingResponse(
+            request_id="temp",
+            agent_name=agent_name_map.get(analysis.agent_type, "Unknown Agent"),
+            agent_type=analysis.agent_type.value,
+            price_eth=analysis.price_eth,
+            price_usd=analysis.price_usd,
+            reasoning=analysis.reasoning,
+            confidence=analysis.confidence,
+            traits_analyzed=[],  # Convert back if needed
+            market_data={},      # Convert back if needed
+            collection_floor=analysis.market_data.collection_floor,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            success=analysis.success,
+            error_message=analysis.error_message
+        )
 
 # --- Agent Discovery ---
 
