@@ -651,13 +651,12 @@ Format your response as:
 - Trait Floors Range: [min to max trait floor prices]
 - Average Trait Floor: [if available]
 
-**💰 RECOMMENDED PRICING**:
-- **Conservative Estimate**: [lower bound] ETH
-- **Fair Market Value**: [best estimate] ETH  
-- **Optimistic Estimate**: [upper bound] ETH
+**💰 FAIR MARKET VALUE**: [single price value] ETH
 
 **📊 Reasoning**:
 [Detailed explanation using trait floor data and rarity percentages]
+
+IMPORTANT: For the Fair Market Value, provide only ONE specific price (e.g., "13.25 ETH"), NOT a range or multiple estimates.
 
 **⚠️ Market Considerations**:
 [Collection health, volume trends, and trait combination factors]
