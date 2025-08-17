@@ -1,0 +1,6 @@
+uagents>=0.12.0
+google-genai>=0.9.0
+python-dotenv>=1.0.0
+httpx>=0.25.0
+mcp>=1.0.0
+cryptography>=41.0.0

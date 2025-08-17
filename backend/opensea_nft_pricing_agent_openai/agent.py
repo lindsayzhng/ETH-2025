@@ -45,8 +45,8 @@ OPENSEA_ACCESS_TOKEN = os.getenv("OPENSEA_ACCESS_TOKEN")
 if not OPENSEA_ACCESS_TOKEN:
     raise ValueError("OPENSEA_ACCESS_TOKEN not found in .env file")
 
-AGENT_NAME = "opensea_nft_pricing_agent"
-AGENT_PORT = 8009
+AGENT_NAME = "opensea_nft_pricing_agent_openai"
+AGENT_PORT = 8010
 
 # User sessions store: session_id -> {last_activity}
 user_sessions: Dict[str, Dict[str, Any]] = {}
@@ -217,6 +217,13 @@ IMPORTANT: Use the OpenSea MCP tools to get real-time data for accurate analysis
         """Clean up the pricing service"""
         self._ctx.logger.info("OpenSea NFT Pricing service cleaned up")
 
+# --- Shared Protocol Import ---
+from shared_pricing_protocol import (
+    nft_pricing_protocol, 
+    NFTPricingRequest, 
+    NFTPricingResponse
+)
+
 # --- uAgent Setup ---
 
 chat_proto = Protocol(spec=chat_protocol_spec)
@@ -249,9 +256,116 @@ async def get_opensea_client(ctx: Context, session_id: str) -> OpenSeaNFTPricer:
     
     return session_clients[session_id]
 
+async def price_nft_for_agent(ctx: Context, collection_name: str, token_id: str) -> Dict[str, Any]:
+    """Extract pricing logic for agent-to-agent communication"""
+    try:
+        # Create a default session for agent requests
+        agent_session_id = "agent_request"
+        client = await get_opensea_client(ctx, agent_session_id)
+        
+        # Create query in the format the client expects
+        query = f"Price {collection_name} #{token_id}"
+        
+        # Get pricing analysis
+        result = await client.price_nft(query)
+        
+        # Extract price from the result (basic regex extraction)
+        import re
+        
+        # Look for price patterns in the result
+        price_patterns = [
+            r"FAIR MARKET VALUE[:\s]+([0-9]+\.?[0-9]*)\s*ETH",
+            r"([0-9]+\.?[0-9]*)\s*ETH",
+            r"Price[:\s]+([0-9]+\.?[0-9]*)"
+        ]
+        
+        price_eth = None
+        for pattern in price_patterns:
+            match = re.search(pattern, result, re.IGNORECASE)
+            if match:
+                try:
+                    price_eth = float(match.group(1))
+                    break
+                except ValueError:
+                    continue
+        
+        return {
+            "price_eth": price_eth,
+            "reasoning": result,
+            "confidence": 0.85,  # Default confidence for OpenAI agent
+            "traits": [],
+            "market_data": {},
+            "collection_floor": None
+        }
+        
+    except Exception as e:
+        ctx.logger.error(f"Error in agent pricing: {e}")
+        raise
+
+# --- Agent-to-Agent Communication Handler ---
+
+@nft_pricing_protocol.on_message(model=NFTPricingRequest)
+async def handle_agent_pricing_request(ctx: Context, sender: str, msg: NFTPricingRequest):
+    """Handle pricing requests from other agents"""
+    
+    ctx.logger.info(f"Received agent pricing request from {sender}: {msg.collection_name} #{msg.token_id}")
+    
+    try:
+        # Use the extracted pricing function
+        pricing_data = await price_nft_for_agent(ctx, msg.collection_name, msg.token_id)
+        
+        # Create structured response
+        response = NFTPricingResponse(
+            request_id=msg.request_id,
+            agent_name="OpenAI NFT Pricing Agent",
+            agent_type="openai",
+            price_eth=pricing_data.get("price_eth"),
+            price_usd=None,  # Could calculate if needed
+            reasoning=pricing_data.get("reasoning", ""),
+            confidence=pricing_data.get("confidence", 0.85),
+            traits_analyzed=pricing_data.get("traits", []),
+            market_data=pricing_data.get("market_data", {}),
+            collection_floor=pricing_data.get("collection_floor"),
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            success=True
+        )
+        
+        ctx.logger.info(f"Sending agent response: {response.price_eth} ETH")
+        
+    except Exception as e:
+        ctx.logger.error(f"Error processing agent pricing request: {e}")
+        
+        # Create error response
+        response = NFTPricingResponse(
+            request_id=msg.request_id,
+            agent_name="OpenAI NFT Pricing Agent",
+            agent_type="openai",
+            price_eth=None,
+            price_usd=None,
+            reasoning="",
+            confidence=0.0,
+            traits_analyzed=[],
+            market_data={},
+            collection_floor=None,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            success=False,
+            error_message=str(e)
+        )
+    
+    # Send response back to requesting agent
+    await ctx.send(sender, response)
+
+# --- User Chat Handler (Existing) ---
+
 @chat_proto.on_message(model=ChatMessage)
 async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
     session_id = str(ctx.session)
+
+    # Filter out messages from other agents - only process user messages
+    # This prevents processing status messages from consensus agent
+    if sender.startswith("agent1q"):  # This is another agent, not a user
+        ctx.logger.debug(f"Ignoring ChatMessage from agent {sender}: not a user request")
+        return
 
     # Send acknowledgment first
     ack_msg = ChatAcknowledgement(
@@ -358,6 +472,7 @@ async def on_shutdown(ctx: Context):
         await client.cleanup()
 
 agent.include(chat_proto)
+agent.include(nft_pricing_protocol, publish_manifest=True)
 
 if __name__ == "__main__":
     print(f"OpenSea NFT Pricing Agent starting on http://localhost:{AGENT_PORT}")

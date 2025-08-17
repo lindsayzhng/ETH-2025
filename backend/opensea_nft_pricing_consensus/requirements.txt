@@ -1,0 +1,23 @@
+# NFT Pricing Consensus Agent Dependencies
+
+# Core uAgent framework
+uagents>=0.21.1
+uagents-core
+
+# MeTTa symbolic reasoning
+hyperon
+
+# ASI:One API client
+openai>=1.0.0
+
+# Standard dependencies
+asyncio
+python-dotenv
+dataclasses
+typing-extensions
+httpx
+
+# Additional utilities
+statistics
+uuid
+datetime

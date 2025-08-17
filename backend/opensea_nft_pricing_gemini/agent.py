@@ -26,7 +26,8 @@ from uagents_core.contrib.protocols.chat import (
 from datetime import datetime, timezone
 from uuid import uuid4
 from dotenv import load_dotenv
-from anthropic import Anthropic
+from google import genai
+from google.genai import types
 
 # --- Agent Configuration ---
 
@@ -34,16 +35,16 @@ from anthropic import Anthropic
 load_dotenv()
 
 # Get API keys
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-if not ANTHROPIC_API_KEY:
-    raise ValueError("ANTHROPIC_API_KEY not found in .env file")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in .env file")
 
 OPENSEA_ACCESS_TOKEN = os.getenv("OPENSEA_ACCESS_TOKEN")
 if not OPENSEA_ACCESS_TOKEN:
     raise ValueError("OPENSEA_ACCESS_TOKEN not found in .env file")
 
-AGENT_NAME = "opensea_nft_pricing_agent_anthropic"
-AGENT_PORT = 8011
+AGENT_NAME = "opensea_nft_pricing_agent_gemini"
+AGENT_PORT = 8009
 
 # User sessions store: session_id -> {last_activity}
 user_sessions: Dict[str, Dict[str, Any]] = {}
@@ -63,7 +64,7 @@ class OpenSeaMCPClient:
         self._ctx = ctx
         self._session: mcp.ClientSession = None
         self._exit_stack = AsyncExitStack()
-        self.anthropic = Anthropic(api_key=ANTHROPIC_API_KEY)
+        self.gemini = genai.Client()
         self.tools = []  # Will be populated after connection
         
     async def connect(self):
@@ -125,17 +126,6 @@ class OpenSeaMCPClient:
                 self._ctx.logger.error(f"Both connection methods failed: {e2}")
                 raise
     
-    def _convert_mcp_tools_to_anthropic_format(self, mcp_tools):
-        """Convert MCP tool definitions to Anthropic tool format"""
-        anthropic_tools = []
-        for tool in mcp_tools:
-            anthropic_tool = {
-                "name": tool.name,
-                "description": tool.description or f"OpenSea tool: {tool.name}",
-                "input_schema": tool.inputSchema or {"type": "object", "properties": {}}
-            }
-            anthropic_tools.append(anthropic_tool)
-        return anthropic_tools
     
     async def price_nft(self, query: str) -> str:
         """
@@ -203,15 +193,17 @@ Examples:
             
             response = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: self.anthropic.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=200,
-                    messages=[{"role": "user", "content": parsing_prompt}]
+                lambda: self.gemini.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=parsing_prompt,
+                    config=types.GenerateContentConfig(
+                        thinking_config=types.ThinkingConfig(thinking_budget=0)
+                    )
                 )
             )
             
-            result_text = response.content[0].text.strip()
-            self._ctx.logger.info(f"Claude parsing response: {result_text}")
+            result_text = response.text.strip()
+            self._ctx.logger.info(f"Gemini parsing response: {result_text}")
             
             # Extract JSON from markdown code blocks if present
             if result_text.startswith("```json"):
@@ -337,15 +329,17 @@ Respond with ONLY a JSON object:
             
             response = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: self.anthropic.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=300,
-                    messages=[{"role": "user", "content": tool_selection_prompt}]
+                lambda: self.gemini.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=tool_selection_prompt,
+                    config=types.GenerateContentConfig(
+                        thinking_config=types.ThinkingConfig(thinking_budget=0)
+                    )
                 )
             )
             
-            result_text = response.content[0].text.strip()
-            self._ctx.logger.info(f"Claude tool selection response: {result_text}")
+            result_text = response.text.strip()
+            self._ctx.logger.info(f"Gemini tool selection response: {result_text}")
             
             # Extract JSON from response
             if result_text.startswith("```json"):
@@ -441,15 +435,17 @@ Respond with ONLY a JSON object:
             
             response = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: self.anthropic.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=300,
-                    messages=[{"role": "user", "content": tool_selection_prompt}]
+                lambda: self.gemini.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=tool_selection_prompt,
+                    config=types.GenerateContentConfig(
+                        thinking_config=types.ThinkingConfig(thinking_budget=0)
+                    )
                 )
             )
             
-            result_text = response.content[0].text.strip()
-            self._ctx.logger.info(f"Claude parameter selection response: {result_text}")
+            result_text = response.text.strip()
+            self._ctx.logger.info(f"Gemini parameter selection response: {result_text}")
             
             # Extract JSON from response
             if result_text.startswith("```json"):
@@ -664,14 +660,13 @@ IMPORTANT: For the Fair Market Value, provide only ONE specific price (e.g., "13
             
             response = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: self.anthropic.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=2000,
-                    messages=[{"role": "user", "content": pricing_prompt}]
+                lambda: self.gemini.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=pricing_prompt
                 )
             )
             
-            return response.content[0].text.strip()
+            return response.text.strip()
             
         except Exception as e:
             self._ctx.logger.error(f"Error in pricing analysis: {e}")
@@ -729,14 +724,13 @@ Format as a professional NFT collection analysis report.
             
             response = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: self.anthropic.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=2000,
-                    messages=[{"role": "user", "content": analysis_prompt}]
+                lambda: self.gemini.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=analysis_prompt
                 )
             )
             
-            return response.content[0].text.strip()
+            return response.text.strip()
             
         except Exception as e:
             self._ctx.logger.error(f"Error analyzing collection: {e}")
@@ -826,7 +820,7 @@ async def price_nft_for_agent(ctx: Context, collection_name: str, token_id: str)
         return {
             "price_eth": price_eth,
             "reasoning": result,
-            "confidence": 0.90,  # Default confidence for Anthropic agent
+            "confidence": 0.80,  # Default confidence for Gemini agent
             "traits": [],
             "market_data": {},
             "collection_floor": None
@@ -851,12 +845,12 @@ async def handle_agent_pricing_request(ctx: Context, sender: str, msg: NFTPricin
         # Create structured response
         response = NFTPricingResponse(
             request_id=msg.request_id,
-            agent_name="Anthropic NFT Pricing Agent",
-            agent_type="anthropic",
+            agent_name="Gemini NFT Pricing Agent",
+            agent_type="gemini",
             price_eth=pricing_data.get("price_eth"),
             price_usd=None,  # Could calculate if needed
             reasoning=pricing_data.get("reasoning", ""),
-            confidence=pricing_data.get("confidence", 0.90),
+            confidence=pricing_data.get("confidence", 0.80),
             traits_analyzed=pricing_data.get("traits", []),
             market_data=pricing_data.get("market_data", {}),
             collection_floor=pricing_data.get("collection_floor"),
@@ -872,8 +866,8 @@ async def handle_agent_pricing_request(ctx: Context, sender: str, msg: NFTPricin
         # Create error response
         response = NFTPricingResponse(
             request_id=msg.request_id,
-            agent_name="Anthropic NFT Pricing Agent",
-            agent_type="anthropic",
+            agent_name="Gemini NFT Pricing Agent",
+            agent_type="gemini",
             price_eth=None,
             price_usd=None,
             reasoning="",
